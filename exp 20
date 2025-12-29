@@ -1,0 +1,49 @@
+import numpy as np
+S_max = 5
+A_max = 5
+gamma = 0.9
+
+K = 2
+c = 1
+h = 0.5
+p = 4
+
+demand_probs = {0: 0.2, 1: 0.5, 2: 0.3}
+V = np.zeros(S_max + 1)
+policy = np.zeros(S_max + 1, dtype=int)
+theta = 1e-3
+while True:
+    delta = 0
+    for s in range(S_max + 1):
+        costs = []
+
+        for a in range(A_max + 1):
+            order_cost = K if a > 0 else 0
+            order_cost += c * a
+
+            expected_cost = order_cost
+
+            for d, prob in demand_probs.items():
+                next_inventory = min(S_max, max(0, s + a - d))
+                holding = h * next_inventory
+                shortage = p * max(0, d - (s + a))
+                expected_cost += prob * (
+                    holding + shortage + gamma * V[next_inventory]
+                )
+
+            costs.append(expected_cost)
+
+        min_cost = min(costs)
+        delta = max(delta, abs(V[s] - min_cost))
+        V[s] = min_cost
+        policy[s] = np.argmin(costs)
+
+    if delta < theta:
+        break
+print("Optimal Value Function (Cost-to-go):")
+for s in range(S_max + 1):
+    print(f"Inventory {s}: V(s) = {V[s]:.2f}")
+
+print("\nOptimal Ordering Policy:")
+for s in range(S_max + 1):
+    print(f"Inventory {s}: Order {policy[s]} units")
