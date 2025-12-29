@@ -1,0 +1,104 @@
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+prices = [10, 20, 30, 40]
+true_conversion_rates = [0.30, 0.25, 0.15, 0.10]
+n_arms = len(prices)
+rounds = 1000
+epsilon = 0.1
+
+
+def pull_arm(arm):
+    """Returns revenue from pulling an arm"""
+    if random.random() < true_conversion_rates[arm]:
+        return prices[arm]
+    return 0
+
+
+
+def epsilon_greedy():
+    counts = np.zeros(n_arms)
+    values = np.zeros(n_arms)
+    total_reward = 0
+    rewards = []
+
+    for t in range(rounds):
+        if random.random() < epsilon:
+            arm = random.randint(0, n_arms - 1)
+        else:
+            arm = np.argmax(values)
+
+        reward = pull_arm(arm)
+        counts[arm] += 1
+        values[arm] += (reward - values[arm]) / counts[arm]
+        total_reward += reward
+        rewards.append(total_reward)
+
+    return rewards
+
+
+def ucb():
+    counts = np.ones(n_arms)
+    values = np.zeros(n_arms)
+    total_reward = 0
+    rewards = []
+
+    for t in range(1, rounds + 1):
+        ucb_values = values + np.sqrt((2 * np.log(t)) / counts)
+        arm = np.argmax(ucb_values)
+
+        reward = pull_arm(arm)
+        counts[arm] += 1
+        values[arm] += (reward - values[arm]) / counts[arm]
+        total_reward += reward
+        rewards.append(total_reward)
+
+    return rewards
+
+
+
+def thompson_sampling():
+    alpha = np.ones(n_arms)
+    beta = np.ones(n_arms)
+    total_reward = 0
+    rewards = []
+
+    for _ in range(rounds):
+        sampled_theta = np.random.beta(alpha, beta)
+        arm = np.argmax(sampled_theta)
+
+        reward = pull_arm(arm)
+        if reward > 0:
+            alpha[arm] += 1
+        else:
+            beta[arm] += 1
+
+        total_reward += reward
+        rewards.append(total_reward)
+
+    return rewards
+
+
+eg_rewards = epsilon_greedy()
+ucb_rewards = ucb()
+ts_rewards = thompson_sampling()
+
+
+
+plt.plot(eg_rewards, label="Epsilon-Greedy")
+plt.plot(ucb_rewards, label="UCB")
+plt.plot(ts_rewards, label="Thompson Sampling")
+plt.xlabel("Pricing Decisions")
+plt.ylabel("Cumulative Revenue")
+plt.title("Dynamic Pricing using Multi-Armed Bandits")
+plt.legend()
+plt.show()
+
+
+print("Final Revenue Comparison")
+print("Epsilon-Greedy:", eg_rewards[-1])
+print("UCB:", ucb_rewards[-1])
+print("Thompson Sampling:", ts_rewards[-1])
