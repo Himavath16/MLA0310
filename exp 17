@@ -1,0 +1,57 @@
+import numpy as np
+import random
+import math
+content = ["Action", "Drama", "Comedy", "Documentary"]
+true_probs = [0.40, 0.55, 0.50, 0.30] 
+steps = 1000
+def random_strategy():
+    reward = 0
+    for _ in range(steps):
+        a = random.randint(0, len(content)-1)
+        reward += 1 if random.random() < true_probs[a] else 0
+    return reward
+def epsilon_greedy(epsilon=0.1):
+    Q = np.zeros(len(content))
+    N = np.zeros(len(content))
+    reward = 0
+
+    for _ in range(steps):
+        if random.random() < epsilon:
+            a = random.randint(0, len(content)-1)
+        else:
+            a = np.argmax(Q)
+
+        r = 1 if random.random() < true_probs[a] else 0
+        N[a] += 1
+        Q[a] += (r - Q[a]) / N[a]
+        reward += r
+
+    return reward
+def ucb():
+    Q = np.zeros(len(content))
+    N = np.zeros(len(content))
+    reward = 0
+
+    for t in range(1, steps + 1):
+        if 0 in N:
+            a = np.argmin(N)   
+        else:
+            ucb_values = Q + np.sqrt(2 * np.log(t) / N)
+            a = np.argmax(ucb_values)
+
+        r = 1 if random.random() < true_probs[a] else 0
+        N[a] += 1
+        Q[a] += (r - Q[a]) / N[a]
+        reward += r
+
+    return reward
+runs = 50
+results = {"Random": [], "Epsilon-Greedy": [], "UCB": []}
+
+for _ in range(runs):
+    results["Random"].append(random_strategy())
+    results["Epsilon-Greedy"].append(epsilon_greedy())
+    results["UCB"].append(ucb())
+print("Average Engagement over Multiple Runs:\n")
+for k, v in results.items():
+    print(f"{k}: {np.mean(v):.2f}")
