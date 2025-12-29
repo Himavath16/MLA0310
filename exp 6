@@ -1,0 +1,79 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+ads = 5
+true_ctr = [0.05, 0.08, 0.03, 0.12, 0.06]
+T = 5000
+
+def show_ad(ad):
+    """Simulate user clicking an ad"""
+    return 1 if np.random.rand() < true_ctr[ad] else 0
+
+def epsilon_greedy(epsilon=0.1):
+    Q = np.zeros(ads)
+    N = np.zeros(ads)
+    rewards = []
+
+    for _ in range(T):
+        if np.random.rand() < epsilon:
+            ad = np.random.randint(ads)
+        else:
+            ad = np.argmax(Q)
+
+        r = show_ad(ad)
+        N[ad] += 1
+        Q[ad] += (r - Q[ad]) / N[ad]
+        rewards.append(r)
+
+    return np.cumsum(rewards) / np.arange(1, T + 1)
+
+def ucb(c=2):
+    Q = np.zeros(ads)
+    N = np.ones(ads)
+    rewards = []
+
+    for t in range(1, T + 1):
+        ucb_values = Q + c * np.sqrt(np.log(t) / N)
+        ad = np.argmax(ucb_values)
+
+        r = show_ad(ad)
+        N[ad] += 1
+        Q[ad] += (r - Q[ad]) / N[ad]
+        rewards.append(r)
+
+    return np.cumsum(rewards) / np.arange(1, T + 1)
+
+def thompson_sampling():
+    alpha = np.ones(ads)
+    beta = np.ones(ads)
+    rewards = []
+
+    for _ in range(T):
+        samples = np.random.beta(alpha, beta)
+        ad = np.argmax(samples)
+
+        r = show_ad(ad)
+        rewards.append(r)
+
+        alpha[ad] += r
+        beta[ad] += 1 - r
+
+    return np.cumsum(rewards) / np.arange(1, T + 1)
+ctr_eg = epsilon_greedy()
+ctr_ucb = ucb()
+ctr_ts = thompson_sampling()
+
+plt.plot(ctr_eg, label="Epsilon-Greedy")
+plt.plot(ctr_ucb, label="UCB")
+plt.plot(ctr_ts, label="Thompson Sampling")
+plt.xlabel("Time Steps")
+plt.ylabel("Click-Through Rate (CTR)")
+plt.title("Ad Selection using Bandit Algorithms")
+plt.legend()
+plt.show()
+print("Final CTR Values:")
+print("Epsilon-Greedy:", ctr_eg[-1])
+print("UCB:", ctr_ucb[-1])
+print("Thompson Sampling:", ctr_ts[-1])
