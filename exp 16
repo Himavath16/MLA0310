@@ -1,0 +1,40 @@
+import numpy as np
+import random
+content_types = ["Video", "Quiz", "Reading", "Coding"]
+true_engagement_prob = [0.30, 0.45, 0.25, 0.55]  
+def epsilon_greedy(epsilon, steps=1000):
+    Q = np.zeros(len(content_types))   
+    N = np.zeros(len(content_types))   
+    total_reward = 0
+
+    for t in range(steps):
+        if random.random() < epsilon:
+            action = random.randint(0, len(content_types) - 1)
+        else:
+            action = np.argmax(Q)
+        reward = 1 if random.random() < true_engagement_prob[action] else 0
+        N[action] += 1
+        Q[action] += (reward - Q[action]) / N[action]
+
+        total_reward += reward
+
+    return total_reward, Q
+runs = 50
+steps = 1000
+epsilon = 0.1
+
+rewards = []
+final_Q = []
+
+for _ in range(runs):
+    total_reward, Q = epsilon_greedy(epsilon, steps)
+    rewards.append(total_reward)
+    final_Q.append(Q)
+print("Average Engagement over runs:", np.mean(rewards))
+print("\nEstimated Engagement Values per Content Type:")
+
+avg_Q = np.mean(final_Q, axis=0)
+for i, content in enumerate(content_types):
+    print(f"{content}: {avg_Q[i]:.2f}")
+
+print("\nBest Content to Recommend:", content_types[np.argmax(avg_Q)])
