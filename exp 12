@@ -1,0 +1,64 @@
+import numpy as np
+rows, cols = 4, 4
+goal = (3, 3)
+gamma = 0.9
+theta = 0.001
+V = np.zeros((rows, cols))
+actions = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+def is_valid(state):
+    r, c = state
+    return 0 <= r < rows and 0 <= c < cols
+
+def reward(state):
+    return 10 if state == goal else -1
+while True:
+    delta = 0
+    for r in range(rows):
+        for c in range(cols):
+            if (r, c) == goal:
+                continue
+
+            values = []
+            for a in actions.values():
+                next_state = (r + a[0], c + a[1])
+                if is_valid(next_state):
+                    values.append(reward(next_state) + gamma * V[next_state])
+                else:
+                    values.append(-1 + gamma * V[r, c])
+
+            new_v = max(values)
+            delta = max(delta, abs(V[r, c] - new_v))
+            V[r, c] = new_v
+
+    if delta < theta:
+        break
+
+print("Optimal State-Value Function:\n")
+print(np.round(V, 2))
+state = (0, 0)
+path = [state]
+
+while state != goal:
+    r, c = state
+    best_action = None
+    best_value = -1e9
+
+    for name, a in actions.items():
+        next_state = (r + a[0], c + a[1])
+        if is_valid(next_state):
+            value = reward(next_state) + gamma * V[next_state]
+            if value > best_value:
+                best_value = value
+                best_action = next_state
+
+    state = best_action
+    path.append(state)
+
+print("\nOptimal Path from Start to Goal:")
+print(path)
