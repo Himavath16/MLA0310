@@ -1,0 +1,58 @@
+import numpy as np
+import random
+states = [0, 1, 2, 3]
+gamma = 0.9
+episode_length = 10
+episodes = 5000
+
+def always_assign(state):
+    return "assign" if state > 0 else "reject"
+
+def threshold_policy(state):
+    return "assign" if state >= 2 else "reject"
+
+def random_policy(state):
+    return random.choice(["assign", "reject"])
+def step(state, action):
+    if action == "assign" and state > 0:
+        reward = 10
+        next_state = state - 1
+    else:
+        reward = -5
+        next_state = state
+    if random.random() < 0.3 and next_state < 3:
+        next_state += 1
+
+    return next_state, reward
+def monte_carlo(policy):
+    returns = {s: [] for s in states}
+
+    for _ in range(episodes):
+        episode = []
+        state = random.choice(states)
+
+        for _ in range(episode_length):
+            action = policy(state)
+            next_state, reward = step(state, action)
+            episode.append((state, reward))
+            state = next_state
+
+        G = 0
+        visited = set()
+        for t in reversed(range(len(episode))):
+            s, r = episode[t]
+            G = gamma * G + r
+            if s not in visited:
+                returns[s].append(G)
+                visited.add(s)
+
+    V = {s: np.mean(returns[s]) for s in states}
+    return V
+V_assign = monte_carlo(always_assign)
+V_threshold = monte_carlo(threshold_policy)
+V_random = monte_carlo(random_policy)
+
+print("Value Function Estimates:\n")
+print("Always Assign:", V_assign)
+print("Threshold Policy:", V_threshold)
+print("Random Policy:", V_random)
