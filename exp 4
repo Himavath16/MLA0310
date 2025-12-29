@@ -1,0 +1,90 @@
+import numpy as np
+
+ROWS, COLS = 5, 5
+
+warehouse = (0, 0)
+delivery_points = [(4, 4), (2, 3)]
+
+actions = {
+    0: (-1, 0),
+    1: (1, 0),
+    2: (0, -1),
+    3: (0, 1)
+}
+
+gamma = 0.9
+theta = 1e-4
+
+def is_terminal(state):
+    return state in delivery_points
+
+def step(state, action):
+    if is_terminal(state):
+        return state, 0
+
+    r, c = state
+    dr, dc = actions[action]
+    nr, nc = r + dr, c + dc
+
+    if 0 <= nr < ROWS and 0 <= nc < COLS:
+        next_state = (nr, nc)
+    else:
+        next_state = state
+
+    reward = -1
+    return next_state, reward
+def policy_iteration():
+    V = np.zeros((ROWS, COLS))
+    policy = np.random.choice(list(actions.keys()), size=(ROWS, COLS))
+
+    while True:
+
+        while True:
+            delta = 0
+            for r in range(ROWS):
+                for c in range(COLS):
+                    state = (r, c)
+                    if is_terminal(state):
+                        continue
+
+                    v = V[r, c]
+                    a = policy[r, c]
+                    next_state, reward = step(state, a)
+                    nr, nc = next_state
+                    V[r, c] = reward + gamma * V[nr, nc]
+                    delta = max(delta, abs(v - V[r, c]))
+
+            if delta < theta:
+                break
+        policy_stable = True
+        for r in range(ROWS):
+            for c in range(COLS):
+                state = (r, c)
+                if is_terminal(state):
+                    continue
+
+                old_action = policy[r, c]
+                action_values = []
+
+                for a in actions:
+                    next_state, reward = step(state, a)
+                    nr, nc = next_state
+                    action_values.append(reward + gamma * V[nr, nc])
+
+                best_action = np.argmax(action_values)
+                policy[r, c] = best_action
+
+                if old_action != best_action:
+                    policy_stable = False
+
+        if policy_stable:
+            break
+
+    return V, policy
+V, optimal_policy = policy_iteration()
+
+print("Optimal Value Function:")
+print(V)
+
+print("\nOptimal Policy (0=↑,1=↓,2=←,3=→):")
+print(optimal_policy)
