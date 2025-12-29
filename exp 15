@@ -1,0 +1,61 @@
+import numpy as np
+import random
+class ChurnEnv:
+    def __init__(self):
+        self.states = [0, 1, 2] 
+        self.gamma = 0.9
+
+    def reset(self):
+        self.state = random.choice(self.states)
+        return self.state
+
+    def step(self, state, action):
+     
+        if state == 0:
+            churn_prob = 0.6 if action == 0 else 0.4
+        elif state == 1:
+            churn_prob = 0.4 if action == 0 else 0.2
+        else:
+            churn_prob = 0.2 if action == 0 else 0.1
+
+        if random.random() < churn_prob:
+            return None, -10, True  
+        else:
+            next_state = min(2, state + 1)
+            return next_state, 1, False
+def always_assign(state):
+    return 1
+def threshold_policy(state):
+    return 1 if state >= 1 else 0
+def random_policy(state):
+    return random.choice([0, 1])
+def policy(state):
+    return 1 if state <= 1 else 0   
+V = {0: [], 1: [], 2: []}
+env = ChurnEnv()
+episodes = 5000
+
+for _ in range(episodes):
+    episode = []
+    state = env.reset()
+
+    while state is not None:
+        action = policy(state)
+        next_state, reward, done = env.step(state, action)
+        episode.append((state, reward))
+        if done:
+            break
+        state = next_state
+    G = 0
+    visited = set()
+    for t in reversed(range(len(episode))):
+        s, r = episode[t]
+        G = env.gamma * G + r
+        if s not in visited:
+            V[s].append(G)
+            visited.add(s)
+V_estimated = {s: np.mean(V[s]) for s in V}
+
+print("Monte Carlo Policy Evaluation Results:\n")
+for state, value in V_estimated.items():
+    print(f"State {state} → Vπ(s) = {value:.2f}")
