@@ -1,0 +1,76 @@
+import numpy as np
+
+GRID_SIZE = 4
+gamma = 0.9
+theta = 0.001
+
+states = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE)]
+
+actions = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+
+items = [(1, 2)]
+goal = (3, 3)
+obstacles = [(2, 1)]
+
+
+def step(state, action):
+    if state == goal:
+        return state, 0
+
+    x, y = state
+    dx, dy = actions[action]
+    nx, ny = x + dx, y + dy
+
+    if nx < 0 or nx >= GRID_SIZE or ny < 0 or ny >= GRID_SIZE:
+        return state, 0
+
+    next_state = (nx, ny)
+
+    if next_state in obstacles:
+        return next_state, -2
+    elif next_state in items:
+        return next_state, 2
+    elif next_state == goal:
+        return next_state, 5
+    else:
+        return next_state, 0
+
+
+policy = {}
+for s in states:
+    policy[s] = {a: 1/len(actions) for a in actions}
+
+def policy_evaluation(policy):
+    V = {s: 0 for s in states}
+
+    while True:
+        delta = 0
+        for s in states:
+            v = V[s]
+            new_v = 0
+
+            for a, prob in policy[s].items():
+                next_state, reward = step(s, a)
+                new_v += prob * (reward + gamma * V[next_state])
+
+            V[s] = new_v
+            delta = max(delta, abs(v - new_v))
+
+        if delta < theta:
+            break
+
+    return V
+
+V = policy_evaluation(policy)
+
+print("\nState Value Function:")
+for i in range(GRID_SIZE):
+    for j in range(GRID_SIZE):
+        print(f"{V[(i,j)]:6.2f}", end=" ")
+    print()
