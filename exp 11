@@ -1,0 +1,86 @@
+import numpy as np
+import random
+class TicTacToe:
+    def __init__(self):
+        self.board = np.zeros(9)
+
+    def reset(self):
+        self.board = np.zeros(9)
+        return tuple(self.board)
+
+    def available_actions(self):
+        return [i for i in range(9) if self.board[i] == 0]
+
+    def step(self, action, player):
+        self.board[action] = player
+        winner = self.check_winner()
+        done = winner is not None or len(self.available_actions()) == 0
+        reward = 1 if winner == player else -1 if winner == -player else 0
+        return tuple(self.board), reward, done
+
+    def check_winner(self):
+        wins = [(0,1,2),(3,4,5),(6,7,8),
+                (0,3,6),(1,4,7),(2,5,8),
+                (0,4,8),(2,4,6)]
+        for a,b,c in wins:
+            if self.board[a] == self.board[b] == self.board[c] != 0:
+                return self.board[a]
+        return None
+def epsilon_greedy(Q, state, actions, epsilon):
+    if random.random() < epsilon:
+        return random.choice(actions)
+    return max(actions, key=lambda a: Q.get((state,a), 0))
+
+
+def softmax_policy(Q, state, actions, tau=1.0):
+    q_vals = np.array([Q.get((state,a), 0) for a in actions])
+    exp_vals = np.exp(q_vals / tau)
+    probs = exp_vals / np.sum(exp_vals)
+    return np.random.choice(actions, p=probs)
+def train(policy_type, episodes=5000):
+    env = TicTacToe()
+    Q = {}
+    alpha, gamma = 0.5, 0.9
+    epsilon = 0.1
+    steps = 0
+    wins = 0
+
+    for _ in range(episodes):
+        state = env.reset()
+        done = False
+
+        while not done:
+            actions = env.available_actions()
+            steps += 1
+
+            if policy_type == "epsilon":
+                action = epsilon_greedy(Q, state, actions, epsilon)
+            else:
+                action = softmax_policy(Q, state, actions)
+
+            next_state, reward, done = env.step(action, 1)
+
+            if not done:
+                opp_action = random.choice(env.available_actions())
+                next_state, opp_reward, done = env.step(opp_action, -1)
+                reward -= opp_reward
+
+      
+            best_next = max([Q.get((next_state,a),0)
+                            for a in env.available_actions()], default=0)
+
+            Q[(state,action)] = Q.get((state,action),0) + \
+                                alpha*(reward + gamma*best_next - Q.get((state,action),0))
+
+            state = next_state
+
+        if reward > 0:
+            wins += 1
+
+    return wins/episodes, steps
+eg_win, eg_steps = train("epsilon")
+sm_win, sm_steps = train("softmax")
+
+print("Performance Comparison\n")
+print(f"Epsilon-Greedy → Win Rate: {eg_win:.2f}, Steps: {eg_steps}")
+print(f"Softmax       → Win Rate: {sm_win:.2f}, Steps: {sm_steps}")
