@@ -1,0 +1,80 @@
+import numpy as np
+ROWS, COLS = 5, 5
+pickup_points = [(4, 4), (1, 3)]
+
+actions = {
+    0: (-1, 0),
+    1: (1, 0),
+    2: (0, -1),
+    3: (0, 1)
+}
+
+gamma = 0.9
+theta = 1e-4
+
+def is_terminal(state):
+    return state in pickup_points
+
+def step(state, action):
+    if is_terminal(state):
+        return state, 0
+
+    r, c = state
+    dr, dc = actions[action]
+    nr, nc = r + dr, c + dc
+
+    if 0 <= nr < ROWS and 0 <= nc < COLS:
+        next_state = (nr, nc)
+    else:
+        next_state = state
+
+    reward = 10 if next_state in pickup_points else -1
+    return next_state, reward
+
+def value_iteration():
+    V = np.zeros((ROWS, COLS))
+
+    while True:
+        delta = 0
+        for r in range(ROWS):
+            for c in range(COLS):
+                state = (r, c)
+                if is_terminal(state):
+                    continue
+
+                v = V[r, c]
+                action_values = []
+
+                for a in actions:
+                    next_state, reward = step(state, a)
+                    nr, nc = next_state
+                    action_values.append(reward + gamma * V[nr, nc])
+
+                V[r, c] = max(action_values)
+                delta = max(delta, abs(v - V[r, c]))
+
+        if delta < theta:
+            break
+    policy = np.zeros((ROWS, COLS), dtype=int)
+    for r in range(ROWS):
+        for c in range(COLS):
+            state = (r, c)
+            if is_terminal(state):
+                continue
+
+            action_values = []
+            for a in actions:
+                next_state, reward = step(state, a)
+                nr, nc = next_state
+                action_values.append(reward + gamma * V[nr, nc])
+
+            policy[r, c] = np.argmax(action_values)
+
+    return V, policy
+V, optimal_policy = value_iteration()
+
+print("Optimal Value Function:")
+print(V)
+
+print("\nOptimal Dispatch Policy (0=↑,1=↓,2=←,3=→):")
+print(optimal_policy)
