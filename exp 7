@@ -1,0 +1,91 @@
+import numpy as np
+import matplotlib.pyplot as plt
+ROWS, COLS = 5, 5
+delivery_points = [(4, 4), (1, 2)]
+
+actions = {
+    0: (-1, 0),
+    1: (1, 0),
+    2: (0, -1),
+    3: (0, 1)
+}
+
+gamma = 0.9
+theta = 1e-4
+def is_terminal(state):
+    return state in delivery_points
+
+def step(state, action):
+    if is_terminal(state):
+        return state, 0
+
+    r, c = state
+    dr, dc = actions[action]
+    nr, nc = r + dr, c + dc
+
+    if 0 <= nr < ROWS and 0 <= nc < COLS:
+        next_state = (nr, nc)
+    else:
+        next_state = state
+
+    reward = 10 if next_state in delivery_points else -1
+    return next_state, reward
+def policy_evaluation(policy):
+    V = np.zeros((ROWS, COLS))
+
+    while True:
+        delta = 0
+        for r in range(ROWS):
+            for c in range(COLS):
+                state = (r, c)
+                if is_terminal(state):
+                    continue
+
+                v = V[r, c]
+                value = 0
+
+                for a, prob in policy[r][c].items():
+                    next_state, reward = step(state, a)
+                    nr, nc = next_state
+                    value += prob * (reward + gamma * V[nr, nc])
+
+                V[r, c] = value
+                delta = max(delta, abs(v - value))
+
+        if delta < theta:
+            break
+
+    return V
+random_policy = [[{a: 0.25 for a in actions} for _ in range(COLS)] for _ in range(ROWS)]
+greedy_policy = []
+for r in range(ROWS):
+    row = []
+    for c in range(COLS):
+        probs = {a: 0 for a in actions}
+        if (r, c) not in delivery_points:
+            target = delivery_points[0]
+            if r < target[0]:
+                probs[1] = 1
+            elif r > target[0]:
+                probs[0] = 1
+            elif c < target[1]:
+                probs[3] = 1
+            else:
+                probs[2] = 1
+        row.append(probs)
+    greedy_policy.append(row)
+
+V_random = policy_evaluation(random_policy)
+V_greedy = policy_evaluation(greedy_policy)
+
+plt.figure()
+plt.imshow(V_random)
+plt.colorbar()
+plt.title("Value Function - Random Policy")
+plt.show()
+
+plt.figure()
+plt.imshow(V_greedy)
+plt.colorbar()
+plt.title("Value Function - Greedy Policy")
+plt.show()
