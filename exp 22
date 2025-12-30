@@ -1,0 +1,67 @@
+import numpy as np
+import random
+GRID_SIZE = 6
+START = (0, 0)
+GOAL = (5, 5)
+ACTIONS = [0, 1, 2, 3]  
+MAX_STEPS = 50
+EPSILON = 0.1
+GAMMA = 0.9
+EPISODES = 5000
+Q = {}
+returns = {}
+
+for x in range(GRID_SIZE):
+    for y in range(GRID_SIZE):
+        for a in ACTIONS:
+            Q[((x, y), a)] = 0.0
+            returns[((x, y), a)] = []
+
+def step(state, action):
+    x, y = state
+
+    if action == 0:   
+        nx, ny = x - 1, y
+    elif action == 1: 
+        nx, ny = x + 1, y
+    elif action == 2: 
+        nx, ny = x, y - 1
+    else:             
+        nx, ny = x, y + 1
+
+   
+    if nx < 0 or nx >= GRID_SIZE or ny < 0 or ny >= GRID_SIZE:
+        return state, -5
+    if (nx, ny) == GOAL:
+        return (nx, ny), 50
+
+    return (nx, ny), -1
+
+def epsilon_greedy(state):
+    if random.random() < EPSILON:
+        return random.choice(ACTIONS)
+    else:
+        q_values = [Q[(state, a)] for a in ACTIONS]
+        return ACTIONS[np.argmax(q_values)]
+for episode in range(EPISODES):
+    state = START
+    episode_data = []
+
+    for _ in range(MAX_STEPS):
+        action = epsilon_greedy(state)
+        next_state, reward = step(state, action)
+        episode_data.append((state, action, reward))
+        state = next_state
+        if state == GOAL:
+            break
+    G = 0
+    visited = set()
+
+    for state, action, reward in reversed(episode_data):
+        G = GAMMA * G + reward
+        if (state, action) not in visited:
+            returns[(state, action)].append(G)
+            Q[(state, action)] = np.mean(returns[(state, action)])
+            visited.add((state, action))
+
+print("Monte Carlo Control training completed.")
