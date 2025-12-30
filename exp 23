@@ -1,0 +1,69 @@
+import numpy as np
+import random
+maze = [
+    ['S', '0', '0', 'T'],
+    ['0', 'T', '0', '0'],
+    ['0', '0', '0', 'T'],
+    ['T', '0', '0', 'G']
+]
+
+ROWS, COLS = 4, 4
+ACTIONS = [0, 1, 2, 3]  
+ALPHA = 0.1
+GAMMA = 0.9
+EPSILON = 0.1
+EPISODES = 1000
+V = np.zeros((ROWS, COLS))
+for i in range(ROWS):
+    for j in range(COLS):
+        if maze[i][j] == 'S':
+            start = (i, j)
+        if maze[i][j] == 'G':
+            goal = (i, j)
+
+def step(state, action):
+    x, y = state
+
+    if action == 0: nx, ny = x - 1, y
+    elif action == 1: nx, ny = x + 1, y
+    elif action == 2: nx, ny = x, y - 1
+    else: nx, ny = x, y + 1
+    if nx < 0 or nx >= ROWS or ny < 0 or ny >= COLS:
+        return state, -5, False
+
+    cell = maze[nx][ny]
+
+    if cell == 'T':
+        return (nx, ny), -50, True
+    if cell == 'G':
+        return (nx, ny), 50, True
+
+    return (nx, ny), -1, False
+
+def epsilon_greedy(state):
+    if random.random() < EPSILON:
+        return random.choice(ACTIONS)
+
+    x, y = state
+    values = []
+    for a in ACTIONS:
+        next_state, r, _ = step(state, a)
+        nx, ny = next_state
+        values.append(r + GAMMA * V[nx][ny])
+    return ACTIONS[np.argmax(values)]
+for episode in range(EPISODES):
+    state = start
+    done = False
+
+    while not done:
+        action = epsilon_greedy(state)
+        next_state, reward, done = step(state, action)
+
+        x, y = state
+        nx, ny = next_state
+        V[x][y] += ALPHA * (reward + GAMMA * V[nx][ny] - V[x][y])
+
+        state = next_state
+
+print("TD(0) learning completed.")
+print("Final Value Function:\n", V)
